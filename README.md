@@ -1,6 +1,6 @@
-# Arthable — flow mock-up (v1)
+# ArthNari — flow mock-up (v1)
 
-A first working mock-up of the **guided scheme-finder flow** for the Arthable awareness website: a chat-style questionnaire (Hindi, with an English toggle) that matches the user to relevant government schemes and shows each scheme's benefit, its fine print, and how to apply.
+A first working mock-up of the **guided scheme-finder flow** for the ArthNari awareness website: a chat-style questionnaire (Hindi, with an English toggle) that matches the user to relevant government schemes and shows each scheme's benefit, its fine print, and how to apply.
 
 **What to review:** the flow and interaction — three questions → matched schemes → detail pages.
 
