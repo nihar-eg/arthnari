@@ -3,245 +3,513 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ArthNari — योजना खोजें</title>
+<title>ArthNari — अपना हक़, अपनी योजना</title>
 <!--
-  ArthNari — mock-up of the guided scheme-finder flow (v1, July 2026).
-  Purpose: review the FLOW, not the final design or content — every scheme fact
-  is marked PLACEHOLDER and will be replaced with verified information.
-  By design: fully static, no backend, no personal data collected.
+  ArthNari — guided scheme-finder (v2, July 2026).
+  Single-page scroll per Riddhima's walkthrough: hero → questionnaire below →
+  results below that; ☰ menu reveals About/Mission/Impact/Sources on-page;
+  scheme details open in a NEW TAB (scheme.html?s=...).
+  Finder logic implements Arthnari_Questionnaire_Corrected.pdf 1:1 (Q1–Q13).
+  Fully static — no backend, no PII, nothing leaves the page.
 -->
 <style>
   :root{
-    --ink:#1f3a34; --accent:#e08a00; --accent-dark:#b26e00; --bg:#faf6ef;
-    --bot:#ffffff; --user:#dff0e4; --line:#e3dccd; --warn:#8a2f2f; --good:#2f6b45;
+    --primary:#7D1F2E; --accent:#D4A03D; --bg:#FBF7F0; --ink:#3D2817;
+    --muted:#E8DCC8; --muted-fg:#6B5645; --card:#FFFFFF; --warn:#8a2323; --good:#2f6b45;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
   body{font-family:-apple-system,"Segoe UI",Roboto,"Noto Sans Devanagari",sans-serif;
-       background:var(--bg); color:var(--ink); font-size:18px; line-height:1.55;}
-  header{position:sticky; top:0; background:var(--ink); color:#fff; padding:12px 16px;
-         display:flex; align-items:center; justify-content:space-between; z-index:5;}
+       background:var(--bg); color:var(--ink); font-size:18px; line-height:1.6;}
+
+  header{position:sticky; top:0; background:var(--primary); color:#fff; padding:12px 16px;
+         display:flex; align-items:center; justify-content:space-between; z-index:20;}
   header .brand{font-weight:700; font-size:20px; letter-spacing:.5px;}
-  header .brand small{display:block; font-weight:400; font-size:12px; opacity:.85;}
-  .langbtn{background:#fff; color:var(--ink); border:none; border-radius:20px;
-           padding:8px 14px; font-size:15px; font-weight:600; cursor:pointer;}
-  main{max-width:560px; margin:0 auto; padding:16px 12px 120px;}
-  .msg{max-width:88%; padding:12px 14px; border-radius:14px; margin:10px 0;
-       box-shadow:0 1px 2px rgba(0,0,0,.06); animation:pop .18s ease-out;}
+  header .right{display:flex; gap:10px; align-items:center;}
+  .langbtn{background:#fff; color:var(--primary); border:none; border-radius:20px;
+           padding:8px 14px; font-size:15px; font-weight:700; cursor:pointer;}
+  .menubtn{background:none; border:2px solid rgba(255,255,255,.7); color:#fff; border-radius:8px;
+           width:42px; height:38px; font-size:20px; cursor:pointer; line-height:1;}
+  nav{position:absolute; top:100%; right:10px; background:#fff; border-radius:12px;
+      box-shadow:0 6px 24px rgba(61,40,23,.25); overflow:hidden; display:none; min-width:230px;}
+  nav.open{display:block;}
+  nav button{display:block; width:100%; text-align:left; background:none; border:none;
+      padding:14px 18px; font-size:17px; color:var(--ink); cursor:pointer; border-bottom:1px solid var(--muted);}
+  nav button:last-child{border-bottom:none;}
+  nav button:hover{background:var(--bg);}
+
+  /* Hero */
+  .hero{max-width:640px; margin:0 auto; padding:34px 18px 26px; text-align:center;}
+  .hero img{width:min(240px,60vw); height:auto; border-radius:18px;
+            box-shadow:0 8px 30px rgba(125,31,46,.18);}
+  .hero h1{font-size:30px; color:var(--primary); margin:18px 0 6px; line-height:1.3;}
+  .hero .tagline{font-size:15px; letter-spacing:2.5px; color:var(--accent); font-weight:700;
+                 text-transform:uppercase; margin-bottom:14px;}
+  .hero p{font-size:17.5px; color:var(--muted-fg); text-align:right; direction:ltr;}
+  .hero p{text-align:center;}
+  .startbtn{display:inline-block; margin-top:22px; background:var(--primary); color:#fff;
+      font-size:20px; font-weight:700; border:none; border-radius:14px; padding:16px 30px;
+      cursor:pointer; box-shadow:0 4px 14px rgba(125,31,46,.3);}
+  .startbtn:active{transform:translateY(1px);}
+
+  /* Chat finder */
+  #finder{max-width:600px; margin:0 auto; padding:10px 12px 30px;}
+  .msg{max-width:88%; padding:12px 15px; border-radius:14px; margin:10px 0;
+       box-shadow:0 1px 2px rgba(61,40,23,.08); animation:pop .18s ease-out;}
   @keyframes pop{from{transform:translateY(6px); opacity:0;} to{transform:none; opacity:1;}}
-  .bot{background:var(--bot); border:1px solid var(--line); border-top-left-radius:4px;}
-  .user{background:var(--user); margin-left:auto; border-top-right-radius:4px; font-weight:600;}
+  .bot{background:var(--card); border:1px solid var(--muted); border-top-left-radius:4px;}
+  .user{background:#f3e3c3; margin-left:auto; border-top-right-radius:4px; font-weight:600;}
   .opts{display:flex; flex-wrap:wrap; gap:10px; margin:6px 0 14px;}
   .opts button{flex:1 1 45%; min-height:56px; font-size:18px; font-weight:600; color:var(--ink);
        background:#fff; border:2px solid var(--accent); border-radius:12px; cursor:pointer; padding:10px;}
-  .opts button:active{background:var(--accent); color:#fff;}
-  .card{background:#fff; border:1px solid var(--line); border-left:6px solid var(--accent);
-        border-radius:12px; padding:14px; margin:12px 0;}
-  .card h3{font-size:19px; margin-bottom:6px;}
-  .card .open{margin-top:10px; width:100%; min-height:48px; font-size:17px; font-weight:700;
-        background:var(--accent); border:none; border-radius:10px; color:#fff; cursor:pointer;}
-  .detail h2{font-size:22px; margin:6px 0 10px;}
-  .block{border-radius:10px; padding:12px; margin:12px 0; font-size:17px;}
-  .benefit{background:#eaf4ec; border:1px solid #bcd8c4;}
-  .fine{background:#fbeaea; border:1px solid #e3bcbc;}
-  .fine strong{color:var(--warn);}
-  .steps{background:#fff; border:1px solid var(--line);}
-  .steps ol{padding-left:22px;}
-  .steps li{margin:8px 0;}
-  .src{font-size:14px; color:#6b6455; margin-top:8px;}
-  .backbtn,.againbtn{width:100%; min-height:50px; margin-top:10px; font-size:17px; font-weight:600;
-        border-radius:10px; cursor:pointer; border:2px solid var(--ink); background:#fff; color:var(--ink);}
-  .speak{background:none; border:2px solid var(--line); border-radius:50%; width:44px; height:44px;
-         font-size:20px; cursor:pointer; vertical-align:middle; margin-left:8px; opacity:.45;}
-  .ph{display:inline-block; background:#fff3cd; color:#7a5c00; border:1px dashed #d9b64a;
-      font-size:12px; font-weight:700; padding:1px 7px; border-radius:8px; letter-spacing:.4px;}
-  footer{position:fixed; bottom:0; left:0; right:0; background:#efe9dd; border-top:1px solid var(--line);
-         font-size:13px; color:#6b6455; padding:8px 14px; text-align:center;}
-  footer a{color:var(--ink);}
+  .opts button:active{background:var(--accent);}
+  .opts button.sel{background:var(--accent); color:#fff; border-color:var(--primary);}
+  .opts button.confirm{flex-basis:100%; background:var(--primary); color:#fff; border-color:var(--primary);}
+  .numrow{display:flex; gap:10px; margin:6px 0 14px;}
+  .numrow input{flex:1; font-size:22px; padding:12px; border:2px solid var(--accent);
+       border-radius:12px; width:100%; background:#fff; color:var(--ink);}
+  .numrow button{min-width:110px; font-size:18px; font-weight:700; background:var(--primary);
+       color:#fff; border:none; border-radius:12px; cursor:pointer;}
+
+  /* Result cards */
+  .card{background:var(--card); border:1px solid var(--muted); border-left:6px solid var(--accent);
+        border-radius:12px; padding:15px; margin:12px 0; box-shadow:0 1px 3px rgba(61,40,23,.1);}
+  .card.zero{border-left-color:var(--good);}
+  .card h3{font-size:19px; color:var(--primary); margin-bottom:5px;}
+  .card .short{font-size:16.5px; color:var(--muted-fg);}
+  .card .note{font-size:15.5px; background:var(--bg); border:1px dashed var(--accent);
+              border-radius:8px; padding:9px 11px; margin-top:9px;}
+  .card .note.warn{border-color:var(--warn); background:#fdf0e3;}
+  .card .note.good{border-color:var(--good); background:#eef5ee;}
+  .card a.open{display:block; text-align:center; margin-top:12px; min-height:48px; line-height:48px;
+        font-size:17px; font-weight:700; background:var(--primary); border-radius:10px; color:#fff;
+        text-decoration:none;}
+  .freetag{display:inline-block; background:var(--good); color:#fff; font-size:13px; font-weight:700;
+           border-radius:7px; padding:1px 8px; margin-left:6px; vertical-align:middle;}
+  .againbtn{width:100%; min-height:50px; margin-top:14px; font-size:17px; font-weight:600;
+        border-radius:10px; cursor:pointer; border:2px solid var(--primary); background:#fff; color:var(--primary);}
+  .speak{background:none; border:2px solid var(--muted); border-radius:50%; width:42px; height:42px;
+         font-size:18px; cursor:pointer; vertical-align:middle; margin-left:8px; opacity:.4;}
+
+  /* Gate pop-up */
+  #overlay{position:fixed; inset:0; background:rgba(61,40,23,.55); z-index:50; display:none;
+           align-items:center; justify-content:center; padding:20px;}
+  #overlay.open{display:flex;}
+  .popup{background:#fff; border-radius:16px; max-width:440px; padding:24px 20px;
+         box-shadow:0 20px 60px rgba(0,0,0,.35); animation:pop .22s ease-out;}
+  .popup h3{color:var(--warn); font-size:21px; margin-bottom:10px;}
+  .popup div{font-size:17px;}
+  .popup button{width:100%; margin-top:18px; min-height:54px; font-size:18px; font-weight:700;
+         background:var(--primary); color:#fff; border:none; border-radius:12px; cursor:pointer;}
+
+  /* Info sections (About/Mission/Impact/Sources) */
+  .info{max-width:640px; margin:0 auto; padding:6px 16px; display:none;}
+  .info.open{display:block;}
+  .info h2{font-size:23px; color:var(--primary); border-bottom:3px solid var(--accent);
+           padding-bottom:6px; margin:26px 0 12px;}
+  .info p{margin:10px 0;}
+  .info blockquote{background:var(--card); border-left:5px solid var(--accent); border-radius:8px;
+           padding:14px 16px; margin:14px 0; font-style:italic; color:var(--ink);}
+  .info .attrib{font-style:normal; font-size:15px; color:var(--muted-fg);}
+  .brand-tagline{letter-spacing:3px; color:var(--accent); font-weight:700; text-align:center;
+           margin-top:16px; text-transform:uppercase;}
+  .impact-entry{display:flex; gap:14px; background:var(--card); border:1px solid var(--muted);
+           border-radius:10px; padding:12px 14px; margin:10px 0;}
+  .impact-entry .d{font-weight:700; color:var(--primary); white-space:nowrap;}
+  .srcline{font-size:16px; margin:8px 0;}
+  .srcline a{color:var(--primary);}
+
+  footer{background:var(--muted); font-size:13.5px; color:var(--muted-fg);
+         padding:14px 16px; text-align:center; margin-top:36px;}
+  footer a{color:var(--primary); font-weight:600;}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">ArthNari <small data-i18n="tag">आपके हक़ की योजनाएँ, साफ़ भाषा में</small></div>
-  <button class="langbtn" id="langbtn" onclick="toggleLang()">English</button>
+  <div class="brand">ArthNari</div>
+  <div class="right">
+    <button class="langbtn" id="langbtn"></button>
+    <button class="menubtn" id="menubtn" aria-label="menu">☰</button>
+  </div>
+  <nav id="menu">
+    <button data-sec="about"></button>
+    <button data-sec="mission"></button>
+    <button data-sec="impact"></button>
+    <button data-sec="sources"></button>
+  </nav>
 </header>
 
-<main id="chat"></main>
+<section class="hero" id="hero">
+  <img src="assets/logo.png" alt="ArthNari">
+  <div class="tagline">Access · Ability · Agency</div>
+  <h1 id="heroTitle"></h1>
+  <p id="heroLead"></p>
+  <button class="startbtn" id="startbtn" onclick="startFinder()"></button>
+</section>
+
+<main id="finder"></main>
+
+<section class="info" id="sec-about"></section>
+<section class="info" id="sec-mission"></section>
+<section class="info" id="sec-impact"></section>
+<section class="info" id="sec-sources"></section>
+
+<div id="overlay">
+  <div class="popup">
+    <h3 id="popTitle"></h3>
+    <div id="popBody"></div>
+    <button id="popOk"></button>
+  </div>
+</div>
 
 <footer>
-  <span data-i18n="disclaimer">यह वेबसाइट केवल जानकारी के लिए है। हम कोई खाता नहीं खोलते, कोई पैसा नहीं लेते, और आपकी कोई निजी जानकारी नहीं माँगते।</span>
-  · <a href="#" onclick="alert('TODO: About page (Slice 4)')" data-i18n="about">परियोजना के बारे में</a>
-  · <a href="#" onclick="alert('TODO: Sources page (Slice 4)')" data-i18n="sources">स्रोत</a>
+  <span id="footText"></span><br>
+  <a href="#" data-sec="about" class="footlink"></a> ·
+  <a href="#" data-sec="sources" class="footlink"></a>
 </footer>
 
+<script src="schemes.js"></script>
 <script>
 // ---------------------------------------------------------------------------
-// UI strings (hi = default; en toggle). Real copy is Riddhima's (SoW §5).
+// Language + static chrome
 // ---------------------------------------------------------------------------
-let lang = 'hi';
-const T = {
-  tag:       {hi:'आपके हक़ की योजनाएँ, साफ़ भाषा में', en:'Your schemes, in plain words'},
-  hello:     {hi:'नमस्ते! 🙏 मैं आपकी मदद के लिए हूँ। तीन छोटे सवालों के जवाब दीजिए — मैं बताऊँगी कि सरकार की कौन-सी योजनाएँ आपके काम की हैं।',
-              en:'Hello! 🙏 I am here to help. Answer three small questions and I will show which government schemes can help you.'},
-  start:     {hi:'शुरू करें', en:'Start'},
-  q_age:     {hi:'आपकी उम्र किस बीच में है?', en:'What is your age group?'},
-  q_income:  {hi:'आपके घर की महीने की कमाई लगभग कितनी है?', en:'Roughly how much does your household earn per month?'},
-  q_situ:    {hi:'इनमें से आपकी स्थिति कौन-सी है? (एक चुनिए)', en:'Which of these fits your situation? (pick one)'},
-  s_daughter:{hi:'मेरी बेटी 10 साल से छोटी है', en:'I have a daughter under 10'},
-  s_pregnant:{hi:'मैं गर्भवती हूँ / नई माँ हूँ', en:'I am pregnant / a new mother'},
-  s_save:    {hi:'मैं बचत करना चाहती हूँ', en:'I want to save money'},
-  results0:  {hi:'अभी इन जवाबों के लिए कोई योजना नहीं मिली। कृपया किसी सहायता-कार्यकर्ता से बात कीजिए।',
-              en:'No matching scheme found for these answers. Please talk to a support worker.'},
-  results:   {hi:'आपके लिए ये योजनाएँ मिलीं 👇', en:'Here are schemes for you 👇'},
-  openBtn:   {hi:'पूरी जानकारी देखें', en:'See full details'},
-  benefitH:  {hi:'✅ आपको क्या मिलेगा', en:'✅ What you get'},
-  fineH:     {hi:'⚠️ ध्यान रखने वाली बात (छिपी शर्त)', en:'⚠️ The fine print (hidden condition)'},
-  stepsH:    {hi:'📋 आवेदन कैसे करें', en:'📋 How to apply'},
-  srcH:      {hi:'स्रोत:', en:'Source:'},
-  back:      {hi:'← योजनाओं की सूची पर वापस', en:'← Back to schemes'},
-  again:     {hi:'फिर से शुरू करें', en:'Start again'},
-  ageA:{hi:'18 से कम', en:'Under 18'}, ageB:{hi:'18 – 40', en:'18 – 40'},
-  ageC:{hi:'40 – 60', en:'40 – 60'},  ageD:{hi:'60 से ऊपर', en:'Over 60'},
-  incA:{hi:'INR 10,000 से कम', en:'Under INR 10,000'}, incB:{hi:'INR 10,000 – 25,000', en:'INR 10,000 – 25,000'},
-  incC:{hi:'INR 25,000 से ज़्यादा', en:'Over INR 25,000'},
-  disclaimer:{hi:'यह वेबसाइट केवल जानकारी के लिए है। हम कोई खाता नहीं खोलते, कोई पैसा नहीं लेते, और आपकी कोई निजी जानकारी नहीं माँगते।',
-              en:'This website is for information only. We do not open accounts, take money, or ask for any personal details.'},
-  about:{hi:'परियोजना के बारे में', en:'About the project'}, sources:{hi:'स्रोत', en:'Sources'},
-  ph:{hi:'नमूना — असली जानकारी जाँच के बाद आएगी', en:'PLACEHOLDER — verified content pending'}
+let lang = localStorage.getItem('arthnari-lang') || 'hi';
+const t = o => (o && (o[lang] !== undefined ? o[lang] : o)) || '';
+
+function renderChrome(){
+  document.documentElement.lang = lang;
+  document.getElementById('langbtn').textContent = t(STR.langBtn);
+  document.getElementById('heroTitle').textContent = t(STR.tag);
+  document.getElementById('heroLead').textContent = t(STR.heroLead);
+  document.getElementById('startbtn').textContent = t(STR.startBtn);
+  document.getElementById('footText').textContent = t(STR.disclaimer);
+  const secs = {about:STR.menuAbout, mission:STR.menuMission, impact:STR.menuImpact, sources:STR.menuSources};
+  document.querySelectorAll('nav button').forEach(b=>{ b.textContent = t(secs[b.dataset.sec]); });
+  const fl = document.querySelectorAll('.footlink');
+  fl[0].textContent = t(STR.menuAbout); fl[1].textContent = t(STR.menuSources);
+  renderInfoSections();
+}
+
+document.getElementById('langbtn').onclick = ()=>{
+  lang = (lang==='hi') ? 'en' : 'hi';
+  localStorage.setItem('arthnari-lang', lang);
+  renderChrome();
+  if(document.getElementById('finder').childElementCount) startFinder(); // restart flow in new language
 };
-const t = k => (T[k] && T[k][lang]) || k;
+
+// ☰ menu — reveals a section below the questionnaire (same page, per her walkthrough)
+const menu = document.getElementById('menu');
+document.getElementById('menubtn').onclick = ()=> menu.classList.toggle('open');
+document.addEventListener('click', e=>{
+  if(!menu.contains(e.target) && e.target.id!=='menubtn') menu.classList.remove('open');
+});
+function showSection(key){
+  menu.classList.remove('open');
+  const el = document.getElementById('sec-'+key);
+  el.classList.add('open');
+  el.scrollIntoView({behavior:'smooth'});
+}
+document.querySelectorAll('nav button').forEach(b=> b.onclick = ()=> showSection(b.dataset.sec));
+document.querySelectorAll('.footlink').forEach(a=> a.onclick = e=>{ e.preventDefault(); showSection(a.dataset.sec); });
 
 // ---------------------------------------------------------------------------
-// PLACEHOLDER scheme data — every fact below is a stand-in. Riddhima authors +
-// verifies the real set against official sources (SoW §9.1). Shape is final:
-// {id, match(answers), name, benefit, fine, steps[], source} — all bilingual.
+// Info sections from ABOUT data
 // ---------------------------------------------------------------------------
-const SCHEMES = [
-  {
-    id:'girl-child',
-    match:a => a.situ==='daughter',
-    name:   {hi:'बेटी बचत योजना (नमूना)', en:'Girl-Child Savings Scheme (PLACEHOLDER)'},
-    benefit:{hi:'बेटी की पढ़ाई/शादी के लिए लंबी बचत — जमा पैसे पर सरकार अच्छा ब्याज देती है। (PLACEHOLDER आँकड़े)',
-             en:'Long-term savings for your daughter with strong government interest. (PLACEHOLDER figures)'},
-    fine:   {hi:'हर साल एक छोटी रक़म जमा करना ज़रूरी है — चूकने पर खाता बंद हो सकता है और जुर्माना लगता है। (PLACEHOLDER — असली शर्त जाँचें)',
-             en:'A minimum deposit is required every year — missing it can freeze the account and cost a penalty. (PLACEHOLDER — verify the real condition)'},
-    steps:  [
-      {hi:'बेटी का जन्म प्रमाण-पत्र और अपना आधार लेकर जाएँ (PLACEHOLDER)', en:'Take your daughter’s birth certificate and your Aadhaar (PLACEHOLDER)'},
-      {hi:'नज़दीकी डाकघर या बैंक जाएँ', en:'Visit the nearest post office or bank'},
-      {hi:'फ़ॉर्म भरकर पहली जमा राशि दें (PLACEHOLDER राशि)', en:'Fill the form and make the first deposit (PLACEHOLDER amount)'}
-    ],
-    source: {hi:'भारत सरकार — आधिकारिक पृष्ठ (TODO: असली लिंक)', en:'Government of India — official page (TODO: real link)'}
-  },
-  {
-    id:'mother-support',
-    match:a => a.situ==='pregnant',
-    name:   {hi:'मातृ सहायता योजना (नमूना)', en:'Maternity Support Scheme (PLACEHOLDER)'},
-    benefit:{hi:'पहले बच्चे के समय माँ को किस्तों में सीधी आर्थिक मदद। (PLACEHOLDER राशि)',
-             en:'Direct cash support for a first-time mother, paid in instalments. (PLACEHOLDER amount)'},
-    fine:   {hi:'किस्तें अपने-आप नहीं आतीं — हर किस्त के लिए टीकाकरण/जाँच का प्रमाण देना होता है। (PLACEHOLDER — असली शर्त जाँचें)',
-             en:'Instalments are not automatic — each needs proof of check-ups/vaccination. (PLACEHOLDER — verify the real condition)'},
-    steps:  [
-      {hi:'आंगनवाड़ी दीदी या ASHA कार्यकर्ता से मिलें', en:'Meet your Anganwadi or ASHA worker'},
-      {hi:'माँ-बच्चा कार्ड बनवाएँ (PLACEHOLDER)', en:'Get the mother-child card made (PLACEHOLDER)'},
-      {hi:'बैंक खाता आधार से जुड़ा होना चाहिए', en:'Your bank account must be linked to Aadhaar'}
-    ],
-    source: {hi:'भारत सरकार — आधिकारिक पृष्ठ (TODO: असली लिंक)', en:'Government of India — official page (TODO: real link)'}
-  },
-  {
-    id:'small-savings',
-    match:a => a.situ==='save' || a.income!=='incC',
-    name:   {hi:'छोटी बचत योजना (नमूना)', en:'Small Savings Scheme (PLACEHOLDER)'},
-    benefit:{hi:'रोज़ INR 1–2 जितनी छोटी बचत से भी कुछ सालों में अच्छी रक़म बनती है। (PLACEHOLDER गणित)',
-             en:'Even saving INR 1–2 a day grows into a meaningful amount over a few years. (PLACEHOLDER arithmetic)'},
-    fine:   {hi:'खाते में हर महीने कम-से-कम रक़म रखनी होती है — नहीं तो योजना रद्द हो सकती है और जमा पैसा फँस सकता है। (PLACEHOLDER — असली शर्त जाँचें)',
-             en:'A minimum monthly balance is required — otherwise the scheme can lapse and your money gets stuck. (PLACEHOLDER — verify the real condition)'},
-    steps:  [
-      {hi:'अपने बैंक की शाखा जाएँ जहाँ खाता है', en:'Visit the bank branch where you hold your account'},
-      {hi:'योजना का नाम लेकर फ़ॉर्म माँगें (PLACEHOLDER)', en:'Ask for the scheme form by name (PLACEHOLDER)'},
-      {hi:'ऑटो-डेबिट चालू करवाएँ ताकि किस्त कभी न छूटे', en:'Set up auto-debit so an instalment is never missed'}
-    ],
-    source: {hi:'भारत सरकार — आधिकारिक पृष्ठ (TODO: असली लिंक)', en:'Government of India — official page (TODO: real link)'}
-  }
-];
+function renderInfoSections(){
+  document.getElementById('sec-about').innerHTML =
+    `<h2>${t(ABOUT.about.title)}</h2>${t(ABOUT.about.body)}`;
+  document.getElementById('sec-mission').innerHTML =
+    `<h2>${t(ABOUT.mission.title)}</h2>${t(ABOUT.mission.body)}`;
+  document.getElementById('sec-impact').innerHTML =
+    `<h2>${t(ABOUT.impact.title)}</h2><p>${t(ABOUT.impact.intro)}</p>` +
+    ABOUT.impact.entries.map(e=>`<div class="impact-entry"><span class="d">${e.date}</span><span>${t(e)}</span></div>`).join('');
+  document.getElementById('sec-sources').innerHTML =
+    `<h2>${t(ABOUT.sources.title)}</h2><p>${t(ABOUT.sources.intro)}</p>` +
+    ABOUT.sources.items.map(s=>`<div class="srcline">${s.url ? `<a href="${s.url}" target="_blank" rel="noopener">${s.label}</a>` : s.label}</div>`).join('');
+}
 
 // ---------------------------------------------------------------------------
-// Chat flow engine — predetermined steps, no free text, no data leaves the page.
+// Chat primitives
 // ---------------------------------------------------------------------------
-const chat = document.getElementById('chat');
-const answers = {};
-
-function bot(html){ const d=document.createElement('div'); d.className='msg bot'; d.innerHTML=html; chat.appendChild(d); scroll(); }
-function user(text){ const d=document.createElement('div'); d.className='msg user'; d.textContent=text; chat.appendChild(d); scroll(); }
-function options(list){ // list: [{label, cb}]
+const chat = document.getElementById('finder');
+function bot(html){ const d=document.createElement('div'); d.className='msg bot'; d.innerHTML=html; chat.appendChild(d); scrollDown(); }
+function user(text){ const d=document.createElement('div'); d.className='msg user'; d.textContent=text; chat.appendChild(d); scrollDown(); }
+function options(list){
   const w=document.createElement('div'); w.className='opts';
   list.forEach(o=>{ const b=document.createElement('button'); b.textContent=o.label;
     b.onclick=()=>{ w.remove(); user(o.label); o.cb(); }; w.appendChild(b); });
-  chat.appendChild(w); scroll();
+  chat.appendChild(w); scrollDown();
 }
-function scroll(){ window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}); }
-function speakStub(){ return '<button class="speak" title="TODO: audio clips (Slice 5)" onclick="alert(\'TODO: recorded audio plays here (Slice 5)\')">🔊</button>'; }
+function multiSelect(list, exclusiveKeys, confirmLabel, cb){
+  // list: [{key,label}] — exclusiveKeys deselect all others when picked
+  const w=document.createElement('div'); w.className='opts';
+  const picked=new Set();
+  list.forEach(o=>{
+    const b=document.createElement('button'); b.textContent=o.label;
+    b.onclick=()=>{
+      if(picked.has(o.key)){ picked.delete(o.key); b.classList.remove('sel'); }
+      else{
+        if(exclusiveKeys.includes(o.key)){ picked.clear(); w.querySelectorAll('button').forEach(x=>x.classList.remove('sel')); }
+        else{ exclusiveKeys.forEach(k=>picked.delete(k));
+              w.querySelectorAll('button').forEach(x=>{ if(exclusiveKeys.includes(x.dataset.key)) x.classList.remove('sel'); }); }
+        picked.add(o.key); b.classList.add('sel');
+      }
+    };
+    b.dataset.key=o.key; w.appendChild(b);
+  });
+  const c=document.createElement('button'); c.className='confirm'; c.textContent=confirmLabel;
+  c.onclick=()=>{
+    const sel=[...picked];
+    w.remove();
+    user(list.filter(o=>sel.includes(o.key)).map(o=>o.label).join(' + ') || '—');
+    cb(sel);
+  };
+  w.appendChild(c); chat.appendChild(w); scrollDown();
+}
+function numberInput(placeholder, okLabel, cb, min, max){
+  const w=document.createElement('div'); w.className='numrow';
+  const i=document.createElement('input'); i.type='number'; i.inputMode='numeric'; i.placeholder=placeholder;
+  const b=document.createElement('button'); b.textContent=okLabel;
+  const go=()=>{ const v=parseInt(i.value,10);
+    if(isNaN(v)||v<min||v>max){ i.style.borderColor='var(--warn)'; return; }
+    w.remove(); user(String(v)); cb(v); };
+  b.onclick=go; i.onkeydown=e=>{ if(e.key==='Enter') go(); };
+  w.appendChild(i); w.appendChild(b); chat.appendChild(w); i.focus(); scrollDown();
+}
+function scrollDown(){ window.scrollTo({top:document.body.scrollHeight - window.innerHeight + 200, behavior:'smooth'}); }
+function speakStub(){ return '<button class="speak" title="ऑडियो जल्द आएगा" onclick="return false">🔊</button>'; }
+function popup(title, body, okLabel, cb){
+  document.getElementById('popTitle').innerHTML = title;
+  document.getElementById('popBody').innerHTML = body;
+  const ok = document.getElementById('popOk'); ok.textContent = okLabel;
+  const ov = document.getElementById('overlay'); ov.classList.add('open');
+  ok.onclick = ()=>{ ov.classList.remove('open'); cb(); };
+}
 
-function stepWelcome(){
+// ---------------------------------------------------------------------------
+// Finder — implements Arthnari_Questionnaire_Corrected.pdf (Q1–Q13)
+// ---------------------------------------------------------------------------
+let A = {};
+
+function startFinder(){
+  A = {situ:[]};
   chat.innerHTML='';
-  bot(t('hello')+speakStub());
-  options([{label:t('start'), cb:stepAge}]);
+  document.getElementById('finder').scrollIntoView({behavior:'smooth'});
+  bot(t(STR.hello)+speakStub());
+  q1();
 }
-function stepAge(){
-  bot(t('q_age')+speakStub());
-  options(['ageA','ageB','ageC','ageD'].map(k=>({label:t(k), cb:()=>{answers.age=k; stepIncome();}})));
-}
-function stepIncome(){
-  bot(t('q_income')+speakStub());
-  options(['incA','incB','incC'].map(k=>({label:t(k), cb:()=>{answers.income=k; stepSituation();}})));
-}
-function stepSituation(){
-  bot(t('q_situ')+speakStub());
+
+// Q1 — age (filters APY 18–40, PMSBY 18–70, PMJJBY 18–50)
+function q1(){ bot(t(STR.q1)+speakStub()); numberInput('––', t(STR.q1_ok), v=>{ A.age=v; q2(); }, 10, 110); }
+
+// Q2 — bank account + Aadhaar gate (Jan Dhan step-zero; big pop-up per her video)
+function q2(){
+  bot(t(STR.q2)+speakStub());
   options([
-    {label:t('s_daughter'), cb:()=>{answers.situ='daughter'; stepResults();}},
-    {label:t('s_pregnant'), cb:()=>{answers.situ='pregnant'; stepResults();}},
-    {label:t('s_save'),     cb:()=>{answers.situ='save';     stepResults();}}
+    {label:t(STR.yes),     cb:()=>{ A.bank='yes'; q3(); }},
+    {label:t(STR.no),      cb:()=>{ A.bank='no';
+        popup(t(STR.gateTitle), t(STR.gateBody), t(STR.gateOk), q3); }},
+    {label:t(STR.notsure), cb:()=>{ A.bank='ns';
+        popup(t(STR.gateTitle), t(STR.gateBodyNS), t(STR.gateOk), q3); }},
   ]);
 }
-function stepResults(){
-  const hits = SCHEMES.filter(s=>s.match(answers));
-  bot(hits.length ? t('results') : t('results0'));
-  hits.forEach(s=>{
-    const c=document.createElement('div'); c.className='card';
-    c.innerHTML = `<span class="ph">${t('ph')}</span><h3>${s.name[lang]}</h3><div>${s.benefit[lang]}</div>`;
-    const b=document.createElement('button'); b.className='open'; b.textContent=t('openBtn');
-    b.onclick=()=>stepDetail(s); c.appendChild(b); chat.appendChild(c);
-  });
+
+// Q3 — household ITR (hard filter for APY only)
+function q3(){
+  bot(t(STR.q3)+speakStub());
+  options([
+    {label:t(STR.yes),     cb:()=>{ A.itr='yes'; q4(); }},
+    {label:t(STR.no),      cb:()=>{ A.itr='no';  q4(); }},
+    {label:t(STR.notsure), cb:()=>{ A.itr='ns';  q4(); }},
+  ]);
+}
+
+// Q4 — life situation, MULTI-select (routes to branches)
+function q4(){
+  bot(t(STR.q4)+speakStub());
+  multiSelect(
+    [{key:'daughter',label:t(STR.q4_a)},{key:'pregnant',label:t(STR.q4_b)},
+     {key:'earning',label:t(STR.q4_c)},{key:'none',label:t(STR.q4_d)}],
+    ['none'], t(STR.q4_done),
+    sel=>{ A.situ = sel.filter(k=>k!=='none'); q5(); });
+}
+
+// Q5 — the ₹500 / end-of-May question (runs for everyone)
+function q5(){
+  bot(t(STR.q5)+speakStub());
+  options([
+    {label:t(STR.yes),       cb:()=>{ A.q5='yes'; nextBranch('start'); }},
+    {label:t(STR.q5_unsure), cb:()=>{ A.q5='ns';  nextBranch('start'); }},
+  ]);
+}
+
+// Branch sequencing: A (daughter) → B (pregnant) → C (earning) → results
+function nextBranch(after){
+  const order=['daughter','pregnant','earning'];
+  const idx = after==='start' ? -1 : order.indexOf(after);
+  for(let i=idx+1; i<order.length; i++){
+    if(A.situ.includes(order[i])){
+      if(order[i]==='daughter') return q6();
+      if(order[i]==='pregnant') return q8();
+      if(order[i]==='earning')  return q12();
+    }
+  }
+  results();
+}
+
+// --- Branch A: daughter ≤10 → SSY
+function q6(){
+  bot(t(STR.q6)+speakStub());
+  options([
+    {label:t(STR.yes),   cb:()=>{ A.birthCert='yes';   q7(); }},
+    {label:t(STR.no),    cb:()=>{ A.birthCert='no';    q7(); }},
+    {label:t(STR.maybe), cb:()=>{ A.birthCert='maybe'; q7(); }},
+  ]);
+}
+function q7(){
+  bot(t(STR.q7)+speakStub());
+  options([
+    {label:t(STR.q7_easy),  cb:()=>{ A.ssyDeposit='easy';  nextBranch('daughter'); }},
+    {label:t(STR.q7_tight), cb:()=>{ A.ssyDeposit='tight'; nextBranch('daughter'); }},
+    {label:t(STR.q7_notnow),cb:()=>{ A.ssyDeposit='notnow';nextBranch('daughter'); }},
+  ]);
+}
+
+// --- Branch B: pregnant / new mom → PMMVY
+function q8(){
+  bot(t(STR.q8)+speakStub());
+  options([
+    {label:t(STR.q8_first), cb:()=>{ A.child='first'; q10(); }},   // skip Q9
+    {label:t(STR.q8_second),cb:()=>{ A.child='second'; q9(); }},
+  ]);
+}
+function q9(){
+  bot(t(STR.q9)+speakStub());
+  options([
+    {label:t(STR.yes), cb:()=>{ A.secondGirl=true;  q10(); }},
+    {label:t(STR.no),  cb:()=>{ A.secondGirl=false; q10(); }},
+  ]);
+}
+function q10(){
+  if(A.child==='second' && A.secondGirl===false){ A.pmmvyCat=[]; return q11(); } // not eligible; still route politely
+  bot(t(STR.q10)+speakStub());
+  multiSelect(
+    [{key:'scst',label:t(STR.q10_scst)},{key:'bpl',label:t(STR.q10_bpl)},
+     {key:'ayush',label:t(STR.q10_ayush)},{key:'nrega',label:t(STR.q10_nrega)},
+     {key:'income',label:t(STR.q10_income)},{key:'unsure',label:t(STR.q10_unsure)}],
+    ['unsure'], t(STR.q4_done),
+    sel=>{ A.pmmvyCat = sel; q11(); });
+}
+function q11(){
+  bot(t(STR.q11)+speakStub());
+  options([
+    {label:t(STR.yes), cb:()=>{ A.anganwadi='yes'; nextBranch('pregnant'); }},
+    {label:t(STR.no),  cb:()=>{ A.anganwadi='no';  nextBranch('pregnant'); }},
+  ]);
+}
+
+// --- Branch C: earning → Mudra
+function q12(){
+  bot(t(STR.q12)+speakStub());
+  options([
+    {label:t(STR.q12_tailor),cb:()=>{ A.activity='tailor'; q13a(); }},
+    {label:t(STR.q12_food),  cb:()=>{ A.activity='food';   q13a(); }},
+    {label:t(STR.q12_kirana),cb:()=>{ A.activity='kirana'; q13a(); }},
+    {label:t(STR.q12_beauty),cb:()=>{ A.activity='beauty'; q13a(); }},
+    {label:t(STR.q12_veg),   cb:()=>{ A.activity='veg';    q13a(); }},
+    {label:t(STR.q12_other), cb:()=>{ A.activity='other';  q13a(); }},
+  ]);
+}
+function q13a(){ bot(t(STR.q13a)+speakStub()); numberInput('₹', t(STR.q1_ok), v=>{ A.mudraAmt=v; q13b(); }, 1, 100000000); }
+function q13b(){
+  bot(t(STR.q13b)+speakStub());
+  options([
+    {label:t(STR.yes), cb:()=>{ A.hasLoan=true;  nextBranch('earning'); }},
+    {label:t(STR.no),  cb:()=>{ A.hasLoan=false; nextBranch('earning'); }},
+  ]);
+}
+
+// ---------------------------------------------------------------------------
+// Results assembly
+// ---------------------------------------------------------------------------
+function card(id, opts){
+  const S = SCHEMES[id]; if(!S) return null;
+  const o = opts||{};
+  const c = document.createElement('div');
+  c.className = 'card' + (o.zero?' zero':'');
+  const isFree = (id==='pmmvy' || id==='jandhan');
+  let h = `<h3>${o.title || t(S.name)}${isFree?`<span class="freetag">${t(STR.free)}</span>`:''}</h3>
+           <div class="short">${o.short || t(S.short)}</div>`;
+  (o.notes||[]).forEach(n=> h += `<div class="note ${n.cls||''}">${n.html}</div>`);
+  h += `<a class="open" href="scheme.html?s=${id}" target="_blank" rel="noopener">${t(STR.openBtn)}</a>`;
+  c.innerHTML = h;
+  return c;
+}
+
+function results(){
+  const cards = [];
+
+  // Step zero — Jan Dhan (bank = no) or Aadhaar check (bank = not sure)
+  if(A.bank==='no')
+    cards.push(card('jandhan', {zero:true, title:t(STR.stepZeroT), short:t(STR.stepZeroB)}));
+  if(A.bank==='ns')
+    cards.push(card('jandhan', {zero:true, title:t(STR.stepZeroChk), short:t(STR.stepZeroChkB)}));
+
+  // Branch A — SSY (05 Jul meeting: yes → show; "not right now" → don't show)
+  if(A.situ.includes('daughter') && A.ssyDeposit!=='notnow'){
+    const notes=[];
+    if(A.birthCert==='no'||A.birthCert==='maybe')
+      notes.push({cls:'warn', html: t(SCHEMES.ssy.disclaimer)});
+    cards.push(card('ssy', {notes}));
+  }
+
+  // Branch B — PMMVY
+  if(A.situ.includes('pregnant')){
+    if(A.child==='second' && A.secondGirl===false){
+      const d=document.createElement('div'); d.className='msg bot';
+      d.innerHTML = (lang==='hi')
+        ? 'दूसरे बच्चे पर मातृ वंदना योजना सिर्फ़ बेटी होने पर मिलती है — इस बच्चे पर यह योजना लागू नहीं होगी। बाक़ी योजनाएँ नीचे देखिए।'
+        : 'On a second child, PMMVY applies only if the child is a girl — so it will not apply for this child. See your other schemes below.';
+      cards.push(d);
+    } else {
+      const notes=[];
+      const amt = (A.child==='first')
+        ? {hi:'आपके लिए: ₹5,000 दो किस्तों में (पहला बच्चा)', en:'For you: ₹5,000 in 2 instalments (first child)'}
+        : {hi:'आपके लिए: ₹6,000 एक किस्त में (दूसरी बेटी)', en:'For you: ₹6,000 in one instalment (second child, girl)'};
+      notes.push({cls:'good', html:t(amt)});
+      if(A.pmmvyCat && A.pmmvyCat.length===1 && A.pmmvyCat[0]==='unsure')
+        notes.push({cls:'warn', html:t(STR.pmmvyVerify)});
+      notes.push({cls: A.anganwadi==='no' ? 'warn':'good',
+                  html: t(A.anganwadi==='no' ? STR.anganwadiGo : STR.anganwadiOk)});
+      cards.push(card('pmmvy', {notes}));
+    }
+  }
+
+  // Branch C — Mudra (05 Jul meeting: no debt-math in the UI; always route the
+  // decision through the Anganwadi/NGO helper or the bank)
+  if(A.situ.includes('earning')){
+    const notes=[{html:t(STR.mudraAsk)},{html:t(STR.mudraRate)}];
+    if(A.hasLoan) notes.unshift({cls:'warn', html:t(STR.mudraReview)});
+    if(A.mudraAmt > 50000) notes.push({html:t(STR.mudraCap)});
+    cards.push(card('mudra', {notes}));
+  }
+
+  // Universal (Tier 1) — age windows per the corrected questionnaire
+  const debitNote = (A.q5==='ns') ? [{cls:'warn', html:`<strong>${t(STR.autoDebitT)}:</strong> ${t(STR.autoDebitB)}`}] : [];
+  if(A.age>=18 && A.age<=40 && A.itr!=='yes') cards.push(card('apy',   {notes:debitNote}));
+  if(INCLUDE_INSURANCE && A.age>=18 && A.age<=70) cards.push(card('pmsby', {notes:debitNote}));
+  if(INCLUDE_INSURANCE && A.age>=18 && A.age<=50) cards.push(card('pmjjby',{notes:debitNote}));
+
+  const real = cards.filter(Boolean);
+  bot(real.length ? t(STR.results) : t(STR.results0));
+  real.forEach(c=> chat.appendChild(c));
+
   const again=document.createElement('button'); again.className='againbtn';
-  again.textContent=t('again'); again.onclick=stepWelcome; chat.appendChild(again); scroll();
-}
-function stepDetail(s){
-  chat.innerHTML='';
-  const d=document.createElement('div'); d.className='detail';
-  d.innerHTML =
-    `<span class="ph">${t('ph')}</span>
-     <h2>${s.name[lang]} ${speakStub()}</h2>
-     <div class="block benefit"><strong>${t('benefitH')}</strong><br>${s.benefit[lang]}</div>
-     <div class="block fine"><strong>${t('fineH')}</strong><br>${s.fine[lang]}</div>
-     <div class="block steps"><strong>${t('stepsH')}</strong>
-       <ol>${s.steps.map(st=>`<li>${st[lang]}</li>`).join('')}</ol></div>
-     <div class="src">${t('srcH')} ${s.source[lang]}</div>`;
-  chat.appendChild(d);
-  const back=document.createElement('button'); back.className='backbtn'; back.textContent=t('back');
-  back.onclick=()=>{ chat.innerHTML=''; stepResults(); };
-  chat.appendChild(back);
-  const again=document.createElement('button'); again.className='againbtn'; again.textContent=t('again');
-  again.onclick=stepWelcome; chat.appendChild(again);
-  window.scrollTo({top:0});
+  again.textContent=t(STR.again); again.onclick=startFinder; chat.appendChild(again);
+  scrollDown();
 }
 
-function toggleLang(){
-  lang = (lang==='hi') ? 'en' : 'hi';
-  document.getElementById('langbtn').textContent = (lang==='hi') ? 'English' : 'हिन्दी';
-  document.documentElement.lang = lang;
-  document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
-  stepWelcome(); // restart flow in the new language (mock-up behaviour)
-}
-
-stepWelcome();
+renderChrome();
 </script>
 </body>
 </html>
