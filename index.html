@@ -276,7 +276,26 @@ function numberInput(placeholder, okLabel, cb, min, max){
   b.onclick=go; i.onkeydown=e=>{ if(e.key==='Enter') go(); };
   w.appendChild(i); w.appendChild(b); chat.appendChild(w); i.focus(); scrollDown();
 }
-function scrollDown(){ window.scrollTo({top:document.body.scrollHeight - window.innerHeight + 200, behavior:'smooth'}); }
+// Keep the newest chat item in view. Anchored to the chat's LAST ELEMENT, not the
+// document bottom: the About/Mission/Impact/Sources sections sit below #finder, so a
+// document-bottom scroll flings the page past the questionnaire whenever one of them
+// is open (reported by Riddhima 2026-08-12). Conservative by design — if the newest
+// item is already comfortably in view it does not move the page at all.
+function scrollDown(){
+  const last = chat.lastElementChild;
+  if(!last) return;
+  const headerH = document.querySelector('header').offsetHeight;
+  const pad = 24;
+  const r = last.getBoundingClientRect();
+  let top = null;
+  if(r.bottom > window.innerHeight - pad)        // hangs below the fold
+    top = window.scrollY + r.bottom - window.innerHeight + pad;
+  else if(r.top < headerH + pad)                 // hidden under the sticky header
+    top = window.scrollY + r.top - headerH - pad;
+  if(top === null) return;
+  const maxTop = document.documentElement.scrollHeight - window.innerHeight;
+  window.scrollTo({top: Math.max(0, Math.min(top, maxTop)), behavior:'smooth'});
+}
 function speakStub(){ return '<button class="speak" title="ऑडियो जल्द आएगा" onclick="return false">🔊</button>'; }
 function popup(title, body, okLabel, cb){
   document.getElementById('popTitle').innerHTML = title;
@@ -294,7 +313,8 @@ let A = {};
 function startFinder(){
   A = {situ:[]};
   chat.innerHTML='';
-  document.getElementById('finder').scrollIntoView({behavior:'smooth'});
+  // No scrollIntoView here — it raced with scrollDown() and left the first question
+  // off-screen. bot() below calls scrollDown(), which is sticky-header-aware.
   bot(t(STR.hello)+speakStub());
   q1();
 }
