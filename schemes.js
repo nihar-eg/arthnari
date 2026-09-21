@@ -4,14 +4,20 @@
 //   - Arthnari_Questionnaire_Corrected.pdf  (finder logic — implemented 1:1)
 //   - Government_Schemes_for_Women_2026.pdf (all scheme facts below)
 //   - Arthnari_Research_Report.pdf          (About / Mission / Impact)
-// Hindi copy: DRAFT by EnsoGuild, pending Riddhima's verification (content is
-// hers per SoW §5). Nothing below is invented; gaps are marked [CONFIRM].
+// Hindi copy: APPROVED by Riddhima (2026-09-19). Lines changed 2026-09-20 for the
+// arthnari.com launch are marked [NEW 09-20] and await her read (content is hers
+// per SoW §5). Nothing below is invented; gaps are marked [CONFIRM].
+//
+// AUDIO_READY: the 🔊 buttons render only when her recordings are wired in
+// (Slice 5). The launch goes out without audio (her call, 2026-09-19).
 //
 // INSURANCE SWITCH: settled OFF by the 05 Jul meeting ("remove PMSBY/PMJJBY
 // from v1" — session-notes/2026-07-05-riddhima-session-2-gemini.md). The data
 // stays below so v1.1 can re-enable with this one flag.
 // ===========================================================================
 const INCLUDE_INSURANCE = false;
+const AUDIO_READY = false;
+const CONTACT_EMAIL = 'contact@arthnari.com';
 
 // ---------------------------------------------------------------------------
 // UI strings
@@ -36,7 +42,10 @@ const STR = {
   yes:        {hi:'हाँ', en:'Yes'},
   no:         {hi:'नहीं', en:'No'},
   notsure:    {hi:'पक्का नहीं पता', en:'Not sure'},
-  q3:         {hi:'क्या आपके घर में कोई इनकम टैक्स (ITR) भरता है?', en:'Does anyone in your household pay income tax (file ITR)?'},
+  // [NEW 09-20] APY excludes only a woman who herself is/was an income-tax payer
+  // (Gazette 10 Aug 2022; PFRDA APY FAQ: a non-taxpayer spouse CAN join).
+  q3:         {hi:'क्या आप खुद इनकम टैक्स भरती हैं, या आपने पहले कभी भरा है? (पति या घर में किसी और का टैक्स मत गिनिए)',
+               en:'Do you yourself pay income tax, or have you ever paid it? (Don’t count your husband’s or anyone else’s tax.)'},
   q4:         {hi:'इनमें से जो-जो बातें आप पर लागू होती हैं, सब चुनिए —', en:'Which of these describe you right now? Select all that apply —'},
   q4_a:       {hi:'मेरी बेटी 10 साल या छोटी है', en:'I have a daughter aged 10 or under'},
   q4_b:       {hi:'मैं गर्भवती हूँ / नई माँ हूँ', en:'I am pregnant / a new mother'},
@@ -105,8 +114,10 @@ const STR = {
   stepZeroChkB:{hi:'बैंक पासबुक देखिए या बैंक में पूछिए। जुड़ा नहीं है तो बैंक उसी दिन जोड़ देता है — आधार साथ ले जाइए।',
                en:'Check your passbook or ask at the branch. If not linked, the bank can link it the same day — carry your Aadhaar.'},
   autoDebitT: {hi:'"मई के अंत" वाली बात समझिए', en:'About the "end of May" question'},
-  autoDebitB: {hi:'बीमा और पेंशन योजनाओं की किस्त हर साल मई के अंत में खाते से <strong>अपने-आप</strong> कटती है। उस दिन खाते में पैसे न हों, तो योजना <strong>चुपचाप बंद</strong> हो जाती है — कोई फोन या चिट्ठी नहीं आती। इसलिए खाते में हमेशा थोड़े पैसे (₹500 तक) रखिए।',
-               en:'Insurance and pension premiums are <strong>auto-debited</strong> from your account at the end of May every year. If the account is empty that day, the scheme <strong>lapses silently</strong> — nobody calls you. So always keep a small buffer (up to ₹500) in the account.'},
+  // Insurance-only (PMSBY/PMJJBY renew each year for 1 Jun–31 May). NOT APY, which debits
+  // monthly/quarterly/half-yearly. Shown only when INCLUDE_INSURANCE is on. [NEW 09-20]
+  autoDebitB: {hi:'बीमा योजनाओं (PMSBY / PMJJBY) की किस्त हर साल मई के अंत में खाते से <strong>अपने-आप</strong> कटती है। उस दिन खाते में पैसे न हों, तो योजना <strong>चुपचाप बंद</strong> हो जाती है — कोई फोन या चिट्ठी नहीं आती। इसलिए खाते में हमेशा कम-से-कम ₹500 रखिए।',
+               en:'Insurance premiums (PMSBY / PMJJBY) are <strong>auto-debited</strong> from your account at the end of May every year. If the account is empty that day, the scheme <strong>lapses silently</strong> — nobody calls you. So always keep at least ₹500 in the account.'},
   pmmvyVerify:{hi:'आपने "पक्का नहीं पता" चुना — कोई बात नहीं। आंगनवाड़ी दीदी से मिलकर अपने कागज़ दिखाइए, वे बता देंगी कि आप पात्र हैं या नहीं।',
                en:'You chose "not sure" — that’s okay. Show your documents to the Anganwadi didi; she will confirm whether you qualify.'},
   anganwadiGo:{hi:'📍 अगला कदम: इसी हफ्ते अपने नज़दीकी आंगनवाड़ी केंद्र जाकर पंजीकरण कराइए — असली आवेदन वहीं होता है।',
@@ -120,6 +131,11 @@ const STR = {
   mudraRate:  {hi:'💡 हमेशा ब्याज दर पूछिए: बैंक का मुद्रा लोन 9–12.5% सालाना होता है; माइक्रोफाइनेंस/दरवाज़े पर मिलने वाला लोन 18–24% या ज़्यादा। और <strong>"एजेंट फीस" माँगने वाला हमेशा धोखेबाज़ होता है</strong> — मुद्रा लोन के लिए कोई फीस नहीं लगती।',
                en:'💡 Always ask the interest rate: bank Mudra loans run 9–12.5% a year; MFI/doorstep loans 18–24% or more. And <strong>anyone asking an "agent fee" is a scam</strong> — Mudra has no fee.'},
   mudraCap:   {hi:'ध्यान दें: शिशु मुद्रा लोन ₹50,000 तक मिलता है।', en:'Note: Shishu Mudra loans go up to ₹50,000.'},
+  // [NEW 09-21] age notes — her call (audit answer 14b): show the scheme with a note rather than hide it.
+  pmmvyAge:   {hi:'⚠️ यह योजना 19 साल या उससे बड़ी माँ के लिए है। आपकी उम्र इससे कम है — अपनी आंगनवाड़ी दीदी से ज़रूर पूछिए कि आपके लिए क्या रास्ता है।',
+               en:'⚠️ This scheme is for mothers aged 19 or older. You are younger — ask your Anganwadi didi what applies to you.'},
+  mudraAge:   {hi:'⚠️ बैंक 18 साल से कम उम्र में लोन नहीं देते। 18 की होने पर यह योजना आपके लिए खुल जाएगी।',
+               en:'⚠️ Banks do not give loans below the age of 18. This scheme opens up for you once you turn 18.'},
   again:      {hi:'फिर से शुरू करें', en:'Start again'},
   free:       {hi:'मुफ़्त', en:'FREE'},
 
@@ -136,6 +152,11 @@ const STR = {
   backHome:   {hi:'← योजना खोज पर वापस', en:'← Back to the scheme finder'},
   langBtn:    {hi:'English', en:'हिन्दी'},
 
+  // [NEW 09-20] contact channel + independence statement (her decision: email)
+  independent:{hi:'ArthNari एक स्वतंत्र जागरूकता परियोजना है — इसे सरकार नहीं चलाती। यह सरकारी वेबसाइट नहीं है।',
+               en:'ArthNari is an independent awareness project — it is not run by the government. This is not a government website.'},
+  contact:    {hi:'कोई सवाल हो, या कोई जानकारी ग़लत लगे, तो हमें लिखिए:', en:'Questions, or something looks wrong? Write to us:'},
+  notFound:   {hi:'यह पेज नहीं मिला — लिंक शायद पुराना है या उसमें कोई ग़लती है।', en:'Page not found — the link may be old or mistyped.'},
   disclaimer: {hi:'यह वेबसाइट केवल जानकारी के लिए है। हम कोई खाता नहीं खोलते, कोई पैसा नहीं लेते, और आपकी कोई निजी जानकारी नहीं माँगते। आवेदन हमेशा बैंक, डाकघर, आंगनवाड़ी या सरकारी पोर्टल पर ही होता है।',
                en:'This website is for information only. We do not open accounts, take money, or ask for any personal details. Applications always happen at the bank, post office, Anganwadi, or an official government portal.'},
 };
@@ -210,28 +231,35 @@ const SCHEMES = {
     insurance:false, tier:1,
     name:   {hi:'अटल पेंशन योजना (APY)', en:'Atal Pension Yojana (APY)'},
     short:  {hi:'60 के बाद ज़िंदगी भर, हर महीने पक्की पेंशन — आपके अपने नाम', en:'A guaranteed monthly pension for life after 60 — in YOUR name'},
-    pitch:  {hi:'"एक कमाई जो हर महीने आपके खाते में, आपके नाम से आए — जिसे कोई और छू नहीं सकता। बुढ़ापे में अपने पैसों की मालkin आप खुद।"',
+    pitch:  {hi:'"एक कमाई जो हर महीने आपके खाते में, आपके नाम से आए — जिसे कोई और छू नहीं सकता। बुढ़ापे में अपने पैसों की मालकिन आप खुद।"',
              en:'"An income that arrives in YOUR account, in YOUR name, untouchable by anyone else, for life. Financial autonomy at 60."'},
-    forWhom:{hi:'18 से 40 साल की महिलाएँ — 40 के बाद जुड़ नहीं सकतीं (पक्की सीमा)। जिस घर में कोई इनकम टैक्स भरता है, वे पात्र नहीं (अक्टूबर 2022 से)।',
-             en:'Women aged 18–40 — joining closes at 40 (hard cutoff). Income-tax payers are not eligible (since Oct 2022).'},
+    forWhom:{hi:'18 से 40 साल की महिलाएँ — 40 के बाद जुड़ नहीं सकतीं (पक्की सीमा)। जो महिला खुद इनकम टैक्स भरती है या पहले भर चुकी है, वह पात्र नहीं (अक्टूबर 2022 से)। पति या घर में किसी और के टैक्स भरने से कोई फ़र्क़ नहीं पड़ता।',
+             en:'Women aged 18–40 — joining closes at 40 (hard cutoff). Women who pay, or have ever paid, income tax themselves are not eligible (since Oct 2022). A husband or anyone else in the household paying tax does not matter.'}, // [NEW 09-20]
     acct:   {hi:'आपका अपना बचत खाता (पेंशन भी आपके ही नाम आएगी)', en:'Your own savings account (the pension is in your name)'},
     figures:[
       [{hi:'पेंशन के विकल्प', en:'Pension options'},   {hi:'₹1,000 / ₹2,000 / ₹3,000 / ₹4,000 / ₹5,000 हर महीने — आप चुनिए', en:'₹1,000 / ₹2,000 / ₹3,000 / ₹4,000 / ₹5,000 per month (you choose)'}],
       [{hi:'जुड़ने की उम्र', en:'Join age'},            {hi:'सिर्फ़ 18–40', en:'18–40 ONLY (hard cutoff)'}],
+      // [NEW 09-20] her APY audit #8 — PFRDA APY FAQ: a later taxpayer's account is unaffected
+      [{hi:'बाद में इनकम टैक्स भरने लगीं तो', en:'If you start paying income tax later'},
+       {hi:'कोई असर नहीं — आपका APY खाता और किस्तें पहले की तरह चलती रहेंगी। टैक्स वाला नियम सिर्फ़ यह देखता है कि खाता खोलने के दिन तक आपने कभी इनकम टैक्स भरा था या नहीं।',
+        en:'No effect — your APY account and contributions carry on as before. The tax rule only looks at whether you had ever paid income tax up to the day you opened the account.'}],
       [{hi:'₹5,000 पेंशन का मासिक खर्च', en:'Monthly cost (₹5k pension)'}, {hi:'18 की उम्र में ₹210 · 25 में ₹376 · 30 में ₹577 · 40 में ₹1,454', en:'Age 18: ₹210 | Age 25: ₹376 | Age 30: ₹577 | Age 40: ₹1,454'}],
       [{hi:'गारंटी', en:'Guarantee'},                   {hi:'फंड कम पड़े तो सरकार भरपाई करती है — ऐसा और कोई प्रोडक्ट नहीं करता', en:'Government tops up if the fund underperforms — no other product offers this'}],
       [{hi:'60 से पहले मृत्यु हो तो', en:'If you die before 60'}, {hi:'पति/पत्नी जारी रख सकते हैं, या जमा राशि (₹1.7–8.5 लाख) वापस ले सकते हैं', en:'Spouse can continue, or take back the corpus (₹1.7L–₹8.5L)'}],
     ],
     needs:  [{hi:'आधार', en:'Aadhaar'},
              {hi:'अपने नाम का बचत खाता', en:'A savings account in your name'},
-             {hi:'घर में कोई ITR न भरता हो', en:'No income-tax payer in the household'}],
+             {hi:'आपने खुद कभी इनकम टैक्स न भरा हो', en:'You have never paid income tax yourself'}, // [NEW 09-20]
+             // [NEW 09-20] her APY audit #13 — PFRDA APY FAQ: nominee mandatory; spouse is the default nominee
+             {hi:'नॉमिनी का नाम देना ज़रूरी है — शादीशुदा हैं तो पति अपने-आप नॉमिनी होते हैं; शादी नहीं हुई है तो किसी को भी नॉमिनी बना सकती हैं, पर शादी के बाद पति की जानकारी देनी होगी',
+              en:'A nominee is compulsory — if you are married, your husband is the nominee by default; if not, you can name anyone, but must add your husband’s details after marriage'}],
     disclaimer:{hi:'<strong>सच्ची बात:</strong> 2060 में ₹5,000 की कीमत आज जितनी नहीं होगी (महँगाई के साथ पेंशन नहीं बढ़ती)। फिर भी — यह पक्का करती है कि बुढ़ापे में आपका खाता कभी ₹0 न हो, और आपको पूरी तरह बच्चों पर निर्भर न रहना पड़े। और किस्त हर महीने अपने-आप कटती है — खाते में पैसे रखना न भूलिए।',
              en:'<strong>Honest caveat:</strong> ₹5,000 in 2060 will be worth less than ₹5,000 today (the pension is not inflation-indexed). But it guarantees you never have ₹0 in old age and never fully depend on your children. The contribution auto-debits monthly — keep the account funded.'},
     steps:  [{hi:'आधार लेकर अपनी बैंक शाखा जाइए', en:'Visit your bank branch with Aadhaar'},
              {hi:'APY फ़ॉर्म भरिए और पेंशन राशि चुनिए', en:'Fill the APY form and choose your pension amount'},
              {hi:'💡 जितनी कम उम्र में शुरू, उतना सस्ता — 18 बनाम 40 में 7 गुना फ़र्क़', en:'💡 The younger you start, the cheaper — a 7× difference between joining at 18 vs 40'}],
     form:   'forms/apy-form.pdf',
-    sources:[{label:'APY जानकारी: atal-pension.nsdl.com या आपका बैंक', url:'https://atal-pension.nsdl.com'}],
+    sources:[{label:'APY जानकारी: PFRDA (pfrda.org.in) या आपका बैंक', url:'https://pfrda.org.in/schemes/atal-pension-yojana-apy'}],
   },
 
   ssy: {
@@ -292,7 +320,7 @@ const SCHEMES = {
     formsExtra:[{label:{hi:'फ़ॉर्म 1-B (दूसरी किस्त)', en:'Form 1-B (second instalment)'}, file:'forms/pmmvy-form-1b.pdf'},
                 {label:{hi:'फ़ॉर्म 1-C (तीसरी किस्त)', en:'Form 1-C (third instalment)'}, file:'forms/pmmvy-form-1c.pdf'}],
     sources:[{label:'PMMVY पंजीकरण: आंगनवाड़ी केंद्र या ASHA दीदी', url:null},
-             {label:'महिला एवं बाल विकास मंत्रालय / Ministry of WCD', url:'https://wcd.nic.in'}],
+             {label:'महिला एवं बाल विकास मंत्रालय / Ministry of WCD', url:'https://wcd.gov.in'}],
   },
 
   mudra: {
@@ -310,7 +338,7 @@ const SCHEMES = {
       [{hi:'ब्याज दर', en:'Interest rate'}, {hi:'बैंक मुद्रा: 9–12.5% सालाना · माइक्रोफाइनेंस/NBFC: 18–24%+ (हमेशा पूछिए!)', en:'Bank Mudra: 9–12.5% p.a. | MFI/NBFC: 18–24%+ (ASK!)'}],
       [{hi:'वापसी', en:'Repayment'},        {hi:'1–5 साल, मासिक किस्तों में', en:'1–5 years in monthly instalments'}],
       [{hi:'किन कामों के लिए सही', en:'Best for'}, {hi:'सिलाई, टिफ़िन/खाना, किराना, ब्यूटी, सब्ज़ी बेचना', en:'Tailoring, tiffin/food, kirana, beauty work, vegetable vending'}],
-      [{hi:'आवेदन', en:'Application'},      {hi:'बैंक शाखा या jansamarth.gov.in', en:'Bank branch or JanSamarth.gov.in'}],
+      [{hi:'आवेदन', en:'Application'},      {hi:'बैंक शाखा या jansamarth.in', en:'Bank branch or JanSamarth.in'}],
     ],
     needs:  [{hi:'चलता हुआ कमाई का काम', en:'A live income activity'},
              {hi:'आधार + बैंक खाता', en:'Aadhaar + bank account'},
@@ -318,10 +346,10 @@ const SCHEMES = {
     disclaimer:{hi:'<strong>धोखे से बचिए:</strong> "एजेंट फीस" माँगने वाला हमेशा धोखेबाज़ है — मुद्रा लोन की कोई फीस नहीं। OTP या आधार किसी बिचौलिए को कभी न दें। EMI आपकी महीने की <strong>बचत</strong> से काफ़ी कम होनी चाहिए, कमाई से नहीं। और ब्याज दर ज़रूर पूछिए — बैंक (9–12%) दरवाज़े पर मिलने वाले लोन (20%+) से बहुत सस्ता है। पहले से कर्ज़ चल रहा हो, तो नया लोन लेने से पहले बैंक से पूरी बात कीजिए।',
              en:'<strong>Red flags:</strong> anyone asking an "agent fee" = SCAM — Mudra has no fee. Never give OTP or Aadhaar to facilitators. Your EMI should be much less than your monthly <strong>surplus</strong>, not your revenue. Always ask the interest rate — banks (9–12%) are far cheaper than doorstep loans (20%+). If you already have a loan running, talk to the bank before stacking another.'},
     steps:  [{hi:'अपना हिसाब तैयार कीजिए: कितना चाहिए, किस पर खर्च होगा', en:'Prepare your plan: how much, spent on what'},
-             {hi:'आधार + खाता लेकर बैंक शाखा जाइए, या jansamarth.gov.in पर आवेदन कीजिए', en:'Take Aadhaar + account details to a bank branch, or apply on jansamarth.gov.in'},
+             {hi:'आधार + खाता लेकर बैंक शाखा जाइए, या jansamarth.in पर आवेदन कीजिए', en:'Take Aadhaar + account details to a bank branch, or apply on jansamarth.in'},
              {hi:'ब्याज दर पूछिए और लिखवा लीजिए', en:'Ask the interest rate and get it in writing'}],
     form:   null,
-    sources:[{label:'मुद्रा लोन: jansamarth.gov.in / udyamimitra.in (पात्रता की अपने-आप जाँच)', url:'https://www.jansamarth.gov.in'},
+    sources:[{label:'मुद्रा लोन: jansamarth.in / udyamimitra.in (पात्रता की अपने-आप जाँच)', url:'https://www.jansamarth.in'},
              {label:'बैंक शिकायत / RBI लोकपाल: cms.rbi.org.in', url:'https://cms.rbi.org.in'}],
   },
 
@@ -338,7 +366,7 @@ const SCHEMES = {
       [{hi:'खर्च', en:'Cost'},              {hi:'कुछ नहीं — खाता मुफ़्त खुलता है', en:'Nothing — the account is free'}],
       [{hi:'कम-से-कम रकम', en:'Minimum balance'}, {hi:'ज़रूरी नहीं (ज़ीरो-बैलेंस चलता है)', en:'None (zero balance is fine)'}],
       [{hi:'क्या चाहिए', en:'What you need'}, {hi:'सिर्फ़ आधार', en:'Just your Aadhaar'}],
-      [{hi:'क्यों ज़रूरी', en:'Why it matters'}, {hi:'PMSBY, PMJJBY, APY, SSY, PMMVY, मुद्रा — सबके लिए अपना खाता पहली शर्त है', en:'PMSBY, PMJJBY, APY, SSY, PMMVY, Mudra — your own account is the first requirement for all of them'}],
+      [{hi:'क्यों ज़रूरी', en:'Why it matters'}, {hi:'APY, SSY, PMMVY, मुद्रा — सबके लिए अपना खाता पहली शर्त है', en:'APY, SSY, PMMVY, Mudra — your own account is the first requirement for all of them'}], // [NEW 09-20] PMSBY/PMJJBY dropped while INCLUDE_INSURANCE is off — re-add with insurance
     ],
     needs:  [{hi:'आधार', en:'Aadhaar'}],
     disclaimer:{hi:'खाता <strong>अपने नाम</strong> का खुलवाइए — पति या बेटे के खाते से योजनाओं का फ़ायदा आप तक नहीं पहुँचता। खाता खुलते ही आधार लिंक करने को ज़रूर कहिए।',
@@ -401,12 +429,12 @@ const ABOUT = {
     intro: {hi:'इस वेबसाइट की हर जानकारी नीचे दिए सरकारी स्रोतों और ArthNari के अपने शोध पर आधारित है। फ़ॉर्म सीधे सरकारी विभागों के हैं।',
             en:'Everything on this site is grounded in the official sources below and ArthNari’s own research. All forms are the official government forms.'},
     items: [
-      {label:'PMSBY / PMJJBY हेल्पलाइन: 1800-180-1111 · 1800-110-001', url:null},
-      {label:'Jan Suraksha — PMSBY / PMJJBY', url:'https://jansuraksha.gov.in'},
-      {label:'Atal Pension Yojana — atal-pension.nsdl.com', url:'https://atal-pension.nsdl.com'},
+      {label:'PMSBY / PMJJBY हेल्पलाइन: 1800-180-1111 · 1800-110-001', url:null, insurance:true},
+      {label:'Jan Suraksha — PMSBY / PMJJBY', url:'https://jansuraksha.gov.in', insurance:true},
+      {label:'Atal Pension Yojana — PFRDA (pfrda.org.in)', url:'https://pfrda.org.in/schemes/atal-pension-yojana-apy'},
       {label:'Sukanya Samriddhi — India Post', url:'https://www.indiapost.gov.in'},
-      {label:'PMMVY — महिला एवं बाल विकास मंत्रालय (wcd.nic.in)', url:'https://wcd.nic.in'},
-      {label:'Mudra / JanSamarth — jansamarth.gov.in · udyamimitra.in', url:'https://www.jansamarth.gov.in'},
+      {label:'PMMVY — महिला एवं बाल विकास मंत्रालय (wcd.gov.in)', url:'https://wcd.gov.in'},
+      {label:'Mudra / JanSamarth — jansamarth.in · udyamimitra.in', url:'https://www.jansamarth.in'},
       {label:'PM Jan Dhan Yojana — pmjdy.gov.in', url:'https://pmjdy.gov.in'},
       {label:'बैंक शिकायत / RBI लोकपाल — cms.rbi.org.in', url:'https://cms.rbi.org.in'},
     ],

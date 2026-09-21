@@ -4,6 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ArthNari — योजना</title>
+<meta name="description" content="योजना की पूरी जानकारी: किसके लिए, क्या चाहिए, आवेदन कैसे करें। Scheme details: who it is for, what you need, how to apply.">
+<meta name="theme-color" content="#7D1F2E">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="ArthNari">
+<meta property="og:title" content="ArthNari — योजना की पूरी जानकारी">
+<meta property="og:description" content="किसके लिए, क्या चाहिए, आवेदन कैसे करें। Who it is for, what you need, how to apply.">
+<meta property="og:image" content="https://arthnari.com/assets/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="hi_IN">
+<meta name="twitter:card" content="summary_large_image">
 <!--
   ArthNari — per-scheme detail page (opens in a new tab from the finder).
   Layout per Riddhima's walkthrough (26 Jun): form-download link · for whom ·
@@ -59,6 +73,7 @@
             text-decoration:none; font-size:17px;}
   footer{background:var(--muted); font-size:13.5px; color:var(--muted-fg);
          padding:12px 16px; text-align:center; margin-top:30px;}
+  footer a{color:var(--primary); font-weight:600;}
 </style>
 </head>
 <body>
@@ -71,19 +86,35 @@
 
 <script src="schemes.js"></script>
 <script>
-let lang = localStorage.getItem('arthnari-lang') || 'hi';
+// localStorage can throw (private mode, blocked storage, some WebViews) — never let that blank the page.
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+};
+let lang = store.get('arthnari-lang') === 'en' ? 'en' : 'hi';
 const t = o => (o && (o[lang] !== undefined ? o[lang] : o)) || '';
 
 const id = new URLSearchParams(location.search).get('s');
-const S = SCHEMES[id];
+// Own keys only (?s=constructor etc. must not resolve), and insurance pages stay
+// hidden while INCLUDE_INSURANCE is off.
+const S = (id && Object.prototype.hasOwnProperty.call(SCHEMES, id) &&
+           (INCLUDE_INSURANCE || !SCHEMES[id].insurance)) ? SCHEMES[id] : null;
 
 function render(){
   document.documentElement.lang = lang;
   document.getElementById('hdrTag').textContent = t(STR.tag);
   document.getElementById('langbtn').textContent = t(STR.langBtn);
-  document.getElementById('foot').textContent = t(STR.disclaimer);
+  document.getElementById('foot').innerHTML =
+    `${t(STR.disclaimer)}<br><strong>${t(STR.independent)}</strong><br>` +
+    `${t(STR.contact)} <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>`;
   const el = document.getElementById('page');
-  if(!S){ el.innerHTML = '<p>Scheme not found. <a href="index.html">← ArthNari</a></p>'; return; }
+  if(!S){
+    document.title = 'ArthNari — ' + t(STR.notFound);
+    if(!document.querySelector('meta[name=robots]')){
+      const m=document.createElement('meta'); m.name='robots'; m.content='noindex'; document.head.appendChild(m);
+    }
+    el.innerHTML = `<h1>${t(STR.notFound)}</h1><a class="backlink" href="index.html">${t(STR.backHome)}</a>`; return;
+  }
   document.title = 'ArthNari — ' + t(S.name);
 
   const isFree = (id==='pmmvy' || id==='jandhan');
@@ -125,7 +156,7 @@ function render(){
 
 document.getElementById('langbtn').onclick = ()=>{
   lang = (lang==='hi') ? 'en' : 'hi';
-  localStorage.setItem('arthnari-lang', lang);
+  store.set('arthnari-lang', lang);
   render();
 };
 render();

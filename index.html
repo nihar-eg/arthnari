@@ -4,12 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ArthNari — अपना हक़, अपनी योजना</title>
+<meta name="description" content="कुछ आसान सवालों से जानिए कि कौन-सी सरकारी योजनाएँ आपके काम की हैं — हिन्दी और अंग्रेज़ी में। Find the government schemes that fit you, in Hindi and English.">
+<link rel="canonical" href="https://arthnari.com/">
+<meta name="theme-color" content="#7D1F2E">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ArthNari">
+<meta property="og:title" content="ArthNari — अपना हक़ जानिए, अपनी योजना पहचानिए">
+<meta property="og:description" content="कुछ आसान सवालों से जानिए कि कौन-सी सरकारी योजनाएँ आपके काम की हैं। Find the government schemes that fit you.">
+<meta property="og:url" content="https://arthnari.com/">
+<meta property="og:image" content="https://arthnari.com/assets/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="hi_IN">
+<meta property="og:locale:alternate" content="en_IN">
+<meta name="twitter:card" content="summary_large_image">
 <!--
   ArthNari — guided scheme-finder (v2, July 2026).
   Single-page scroll per Riddhima's walkthrough: hero → questionnaire below →
   results below that; ☰ menu reveals About/Mission/Impact/Sources on-page;
   scheme details open in a NEW TAB (scheme.html?s=...).
-  Finder logic implements Arthnari_Questionnaire_Corrected.pdf 1:1 (Q1–Q13).
+  Finder logic implements Arthnari_Questionnaire_Corrected.pdf (Q1–Q13), with two
+  launch corrections (2026-09-20, her OK): Q3 asks about HER OWN income tax (APY rule),
+  and Q5 (end-of-May) runs only when INCLUDE_INSURANCE is on — it is an insurance rule.
   Fully static — no backend, no PII, nothing leaves the page.
 -->
 <style>
@@ -40,7 +59,7 @@
 
   /* Hero */
   .hero{max-width:640px; margin:0 auto; padding:34px 18px 26px; text-align:center;}
-  .hero img{width:min(240px,60vw); height:auto; border-radius:18px;
+  .hero img{width:240px; width:min(240px,60vw); max-width:100%; height:auto; border-radius:18px;
             box-shadow:0 8px 30px rgba(125,31,46,.18);}
   .hero h1{font-size:30px; color:var(--primary); margin:18px 0 6px; line-height:1.3;}
   .hero .tagline{font-size:15px; letter-spacing:2.5px; color:var(--accent); font-weight:700;
@@ -92,7 +111,7 @@
          font-size:18px; cursor:pointer; vertical-align:middle; margin-left:8px; opacity:.4;}
 
   /* Gate pop-up */
-  #overlay{position:fixed; inset:0; background:rgba(61,40,23,.55); z-index:50; display:none;
+  #overlay{position:fixed; top:0; right:0; bottom:0; left:0; /* not inset:0 — old Android WebViews lack it */ background:rgba(61,40,23,.55); z-index:50; display:none;
            align-items:center; justify-content:center; padding:20px;}
   #overlay.open{display:flex;}
   .popup{background:#fff; border-radius:16px; max-width:440px; padding:24px 20px;
@@ -140,7 +159,7 @@
 </header>
 
 <section class="hero" id="hero">
-  <img src="assets/logo.png" alt="ArthNari">
+  <img src="assets/logo.jpg" alt="ArthNari" width="373" height="560">
   <div class="tagline">Access · Ability · Agency</div>
   <h1 id="heroTitle"></h1>
   <p id="heroLead"></p>
@@ -164,6 +183,8 @@
 
 <footer>
   <span id="footText"></span><br>
+  <strong id="footIndep"></strong><br>
+  <span id="footContactLbl"></span> <a id="footContact" href="mailto:contact@arthnari.com">contact@arthnari.com</a><br>
   <a href="#" data-sec="about" class="footlink"></a> ·
   <a href="#" data-sec="sources" class="footlink"></a>
 </footer>
@@ -173,7 +194,12 @@
 // ---------------------------------------------------------------------------
 // Language + static chrome
 // ---------------------------------------------------------------------------
-let lang = localStorage.getItem('arthnari-lang') || 'hi';
+// localStorage can throw (private mode, blocked storage, some WebViews) — never let that blank the page.
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+};
+let lang = store.get('arthnari-lang') === 'en' ? 'en' : 'hi';
 const t = o => (o && (o[lang] !== undefined ? o[lang] : o)) || '';
 
 function renderChrome(){
@@ -183,6 +209,10 @@ function renderChrome(){
   document.getElementById('heroLead').textContent = t(STR.heroLead);
   document.getElementById('startbtn').textContent = t(STR.startBtn);
   document.getElementById('footText').textContent = t(STR.disclaimer);
+  document.getElementById('footIndep').textContent = t(STR.independent);
+  document.getElementById('footContactLbl').textContent = t(STR.contact);
+  const fc = document.getElementById('footContact');
+  fc.href = 'mailto:' + CONTACT_EMAIL; fc.textContent = CONTACT_EMAIL;
   const secs = {about:STR.menuAbout, mission:STR.menuMission, impact:STR.menuImpact, sources:STR.menuSources};
   document.querySelectorAll('nav button').forEach(b=>{ b.textContent = t(secs[b.dataset.sec]); });
   const fl = document.querySelectorAll('.footlink');
@@ -192,7 +222,7 @@ function renderChrome(){
 
 document.getElementById('langbtn').onclick = ()=>{
   lang = (lang==='hi') ? 'en' : 'hi';
-  localStorage.setItem('arthnari-lang', lang);
+  store.set('arthnari-lang', lang);
   renderChrome();
   if(document.getElementById('finder').childElementCount) startFinder(); // restart flow in new language
 };
@@ -203,8 +233,11 @@ document.getElementById('menubtn').onclick = ()=> menu.classList.toggle('open');
 document.addEventListener('click', e=>{
   if(!menu.contains(e.target) && e.target.id!=='menubtn') menu.classList.remove('open');
 });
+// One section at a time (Nihar, 2026-09-20): opening one closes the others, so the page
+// no longer grows with every menu tap and there is never a pile of sections to scroll past.
 function showSection(key){
   menu.classList.remove('open');
+  document.querySelectorAll('.info.open').forEach(x=>{ if(x.id!=='sec-'+key) x.classList.remove('open'); });
   const el = document.getElementById('sec-'+key);
   el.classList.add('open');
   el.scrollIntoView({behavior:'smooth'});
@@ -225,7 +258,7 @@ function renderInfoSections(){
     ABOUT.impact.entries.map(e=>`<div class="impact-entry"><span class="d">${e.date}</span><span>${t(e)}</span></div>`).join('');
   document.getElementById('sec-sources').innerHTML =
     `<h2>${t(ABOUT.sources.title)}</h2><p>${t(ABOUT.sources.intro)}</p>` +
-    ABOUT.sources.items.map(s=>`<div class="srcline">${s.url ? `<a href="${s.url}" target="_blank" rel="noopener">${s.label}</a>` : s.label}</div>`).join('');
+    ABOUT.sources.items.filter(s=> INCLUDE_INSURANCE || !s.insurance).map(s=>`<div class="srcline">${s.url ? `<a href="${s.url}" target="_blank" rel="noopener">${s.label}</a>` : s.label}</div>`).join('');
 }
 
 // ---------------------------------------------------------------------------
@@ -296,7 +329,8 @@ function scrollDown(){
   const maxTop = document.documentElement.scrollHeight - window.innerHeight;
   window.scrollTo({top: Math.max(0, Math.min(top, maxTop)), behavior:'smooth'});
 }
-function speakStub(){ return '<button class="speak" title="ऑडियो जल्द आएगा" onclick="return false">🔊</button>'; }
+// 🔊 placeholder — hidden until her recordings are wired in (AUDIO_READY in schemes.js).
+function speakStub(){ return AUDIO_READY ? '<button class="speak" title="ऑडियो जल्द आएगा" onclick="return false">🔊</button>' : ''; }
 function popup(title, body, okLabel, cb){
   document.getElementById('popTitle').innerHTML = title;
   document.getElementById('popBody').innerHTML = body;
@@ -334,7 +368,7 @@ function q2(){
   ]);
 }
 
-// Q3 — household ITR (hard filter for APY only)
+// Q3 — does SHE pay / has she paid income tax (hard filter for APY only)
 function q3(){
   bot(t(STR.q3)+speakStub());
   options([
@@ -351,10 +385,11 @@ function q4(){
     [{key:'daughter',label:t(STR.q4_a)},{key:'pregnant',label:t(STR.q4_b)},
      {key:'earning',label:t(STR.q4_c)},{key:'none',label:t(STR.q4_d)}],
     ['none'], t(STR.q4_done),
-    sel=>{ A.situ = sel.filter(k=>k!=='none'); q5(); });
+    sel=>{ A.situ = sel.filter(k=>k!=='none'); INCLUDE_INSURANCE ? q5() : nextBranch('start'); });
 }
 
-// Q5 — the ₹500 / end-of-May question (runs for everyone)
+// Q5 — the ₹500 / end-of-May question. Insurance-only (PMSBY/PMJJBY renew each May);
+// skipped while INCLUDE_INSURANCE is off. APY debits monthly/quarterly/half-yearly.
 function q5(){
   bot(t(STR.q5)+speakStub());
   options([
@@ -468,6 +503,7 @@ function card(id, opts){
 
 function results(){
   const cards = [];
+  let pmmvyNo = false;
 
   // Step zero — Jan Dhan (bank = no) or Aadhaar check (bank = not sure)
   if(A.bank==='no')
@@ -486,17 +522,14 @@ function results(){
   // Branch B — PMMVY
   if(A.situ.includes('pregnant')){
     if(A.child==='second' && A.secondGirl===false){
-      const d=document.createElement('div'); d.className='msg bot';
-      d.innerHTML = (lang==='hi')
-        ? 'दूसरे बच्चे पर मातृ वंदना योजना सिर्फ़ बेटी होने पर मिलती है — इस बच्चे पर यह योजना लागू नहीं होगी। बाक़ी योजनाएँ नीचे देखिए।'
-        : 'On a second child, PMMVY applies only if the child is a girl — so it will not apply for this child. See your other schemes below.';
-      cards.push(d);
+      pmmvyNo = true;   // told as a message below, not counted as a result card
     } else {
       const notes=[];
       const amt = (A.child==='first')
         ? {hi:'आपके लिए: ₹5,000 दो किस्तों में (पहला बच्चा)', en:'For you: ₹5,000 in 2 instalments (first child)'}
         : {hi:'आपके लिए: ₹6,000 एक किस्त में (दूसरी बेटी)', en:'For you: ₹6,000 in one instalment (second child, girl)'};
       notes.push({cls:'good', html:t(amt)});
+      if(A.age < 19) notes.push({cls:'warn', html:t(STR.pmmvyAge)});   // [NEW 09-21] her 14b
       if(A.pmmvyCat && A.pmmvyCat.length===1 && A.pmmvyCat[0]==='unsure')
         notes.push({cls:'warn', html:t(STR.pmmvyVerify)});
       notes.push({cls: A.anganwadi==='no' ? 'warn':'good',
@@ -509,6 +542,7 @@ function results(){
   // decision through the Anganwadi/NGO helper or the bank)
   if(A.situ.includes('earning')){
     const notes=[{html:t(STR.mudraAsk)},{html:t(STR.mudraRate)}];
+    if(A.age < 18) notes.unshift({cls:'warn', html:t(STR.mudraAge)});   // [NEW 09-21] her 14b
     if(A.hasLoan) notes.unshift({cls:'warn', html:t(STR.mudraReview)});
     if(A.mudraAmt > 50000) notes.push({html:t(STR.mudraCap)});
     cards.push(card('mudra', {notes}));
@@ -516,11 +550,16 @@ function results(){
 
   // Universal (Tier 1) — age windows per the corrected questionnaire
   const debitNote = (A.q5==='ns') ? [{cls:'warn', html:`<strong>${t(STR.autoDebitT)}:</strong> ${t(STR.autoDebitB)}`}] : [];
-  if(A.age>=18 && A.age<=40 && A.itr!=='yes') cards.push(card('apy',   {notes:debitNote}));
+  if(A.age>=18 && A.age<=40 && A.itr!=='yes') cards.push(card('apy'));
   if(INCLUDE_INSURANCE && A.age>=18 && A.age<=70) cards.push(card('pmsby', {notes:debitNote}));
   if(INCLUDE_INSURANCE && A.age>=18 && A.age<=50) cards.push(card('pmjjby',{notes:debitNote}));
 
   const real = cards.filter(Boolean);
+  // A second child who is a boy gets a plain message, not a card. Say "see below" only
+  // when there is something below (a 0-card screen used to show the header + "see below").
+  if(pmmvyNo) bot((lang==='hi')
+    ? 'दूसरे बच्चे पर मातृ वंदना योजना सिर्फ़ बेटी होने पर मिलती है — इस बच्चे पर यह योजना लागू नहीं होगी।' + (real.length ? ' बाक़ी योजनाएँ नीचे देखिए।' : '')
+    : 'On a second child, PMMVY applies only if the child is a girl — so it will not apply for this child.' + (real.length ? ' See your other schemes below.' : ''));
   bot(real.length ? t(STR.results) : t(STR.results0));
   real.forEach(c=> chat.appendChild(c));
 

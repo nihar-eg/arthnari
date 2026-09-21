@@ -1,0 +1,10 @@
+# Cloudflare Pages response headers (static site, no third-party embeds).
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# Official form PDFs change rarely; let phones keep them for a day (saves data on repeat visits).
+/forms/*
+  Cache-Control: public, max-age=86400

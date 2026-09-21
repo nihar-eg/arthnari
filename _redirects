@@ -1,0 +1,6 @@
+# Cloudflare Pages redirects. The build copy used to live at nihar-eg.github.io/arthnari/,
+# so anyone who swaps only the domain on an old link lands on the right page.
+# Static rules first (Cloudflare evaluates them ahead of splats; one hop for old deep links).
+/arthnari                /        301
+/arthnari/scheme.html    /scheme  301
+/arthnari/*              /:splat  301
