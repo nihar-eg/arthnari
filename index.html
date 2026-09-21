@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArthNari — arthnari.com</title>
+<link rel="canonical" href="https://arthnari.com/">
+<meta name="robots" content="noindex, follow">
+<meta http-equiv="refresh" content="0; url=https://arthnari.com/">
+<!--
+  Redirect stub. The ArthNari site moved to https://arthnari.com (Cloudflare Pages, the
+  family's own account) on 2026-09-21. This branch (gh-pages) exists only to send old
+  nihar-eg.github.io/arthnari links to the real site; the source lives on `main`.
+  GitHub Pages cannot issue server-side redirects, hence meta-refresh + script.
+  The script keeps the rest of the path and the query, so /arthnari/scheme.html?s=apy
+  lands on /scheme.html?s=apy, which arthnari.com then sends to /scheme?s=apy.
+-->
+<script>
+  (function () {
+    var rest = location.pathname.replace(/^\/arthnari/, '') || '/';
+    location.replace('https://arthnari.com' + rest + location.search + location.hash);
+  })();
+</script>
+<style>
+  body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,"Noto Sans Devanagari",sans-serif;
+       background:#FBF7F0;color:#3D2817;font-size:18px;line-height:1.6;text-align:center;padding:60px 18px;}
+  a{color:#7D1F2E;font-weight:700;}
+</style>
+</head>
+<body>
+  <p>ArthNari अब यहाँ है: <a href="https://arthnari.com/">arthnari.com</a></p>
+  <p lang="en">ArthNari has moved to <a href="https://arthnari.com/">arthnari.com</a></p>
+</body>
+</html>
